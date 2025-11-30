@@ -141,6 +141,31 @@ class GdbController:
             "state": self._state,
         }
 
+    def interrupt(self) -> Dict[str, Any]:
+        """Interrupt the running inferior; return raw responses"""
+        logger.info("Interrupt execution")
+        collected: list[dict] = []
+        self.controller.gdb_process.send_signal(signal.SIGINT)
+        responses = self.controller.get_gdb_response(timeout_sec=1.0)
+        for res in responses:
+            if res.get("type") != "notify":
+                collected.append(res)
+            if res.get("type") == "notify":
+                self._handle_notify(res)
+        # Determine success: no explicit error result messages
+        success = True
+        for r in collected:
+            if r.get("type") == "result" and r.get("message") == "error":
+                success = False
+                break
+
+        return {
+            "command": "interrupt",
+            "responses": collected,
+            "success": success,
+            "state": self._state,
+        }
+
     def _handle_notify(self, response: Dict[str, Any]):
         """Handle GDB notification messages to track state"""
         message = response.get("message", "")
@@ -287,9 +312,19 @@ class PwndbgTools:
     def execute(self, command: str) -> Dict[str, Any]:
         """Execute arbitrary GDB/pwndbg command and return raw responses"""
         logger.info(f"Execute tool: {command}")
+        if command == "interrupt":
+            return self.interrupt()
         result = self.gdb.execute_command(command)
         self.session.update_state(result["state"])
         self.session.record_command(command, result)
+        return result
+
+    def interrupt(self) -> Dict[str, Any]:
+        """Interrupt the running inferior; return raw responses"""
+        logger.info("Interrupt execution")
+        result = self.gdb.interrupt()
+        self.session.update_state(result["state"])
+        self.session.record_command(result.get("command", "interrupt"), result)
         return result
 
     def set_file(self, binary_path: str) -> Dict[str, Any]:

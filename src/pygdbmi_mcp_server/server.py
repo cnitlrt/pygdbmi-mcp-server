@@ -89,16 +89,10 @@ async def set_file(binary_path: str, context: Context) -> Dict[str, Any]:
 async def set_poc_file(poc_file_path: str, context: Context) -> Dict[str, Any]:
     """
     Use `set args poc_file` to set the proof-of-concept (PoC) file for the loaded binary.
-    The poc file should be in the /shared directory.
 
     :param poc_file_path: Path to the PoC file to set
     :returns: Status of the operation
     """
-    if not poc_file_path.startswith("/shared/"):
-        return {
-            "success": False,
-            "error": "The poc file should be in the /shared directory.",
-        }
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
         return {"success": False, "error": "Please set_file first."}
@@ -282,6 +276,19 @@ async def get_session_info(context: Context = None) -> Dict[str, Any]:
     if pwndbg_tools is None:
         return {"success": False, "error": "Please set_file first."}
     return pwndbg_tools.get_session_info()
+
+@mcp.tool()
+@catch_errors()
+async def interrupt(context: Context = None) -> Dict[str, Any]:
+    """
+    Interrupt the running inferior.
+
+    :returns: Interrupt status and debugging artifacts
+    """
+    pwndbg_tools = await get_unit_session(context.session)
+    if pwndbg_tools is None:
+        return {"success": False, "error": "Please set_file first."}
+    return pwndbg_tools.interrupt()
 
 
 def main():
