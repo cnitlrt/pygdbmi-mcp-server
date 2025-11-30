@@ -13,6 +13,7 @@
 ### 调试控制
 - `execute`: 执行任意 GDB/pwndbg 命令。
 - `run`: 运行加载的二进制文件。
+- `interrupt`: 中断正在运行的程序。
 - `finish`: 运行直到当前函数返回。
 - `step_control`: 执行步进命令 (continue, next, step, nexti, stepi)。
 

@@ -13,6 +13,7 @@ This server provides a set of MCP tools for interacting with GDB:
 ### Debug Control
 - `execute`: Execute arbitrary GDB/pwndbg command.
 - `run`: Run the loaded binary.
+- `interrupt`: Interrupt the running inferior.
 - `finish`: Run until the current function returns.
 - `step_control`: Execute stepping commands (continue, next, step, nexti, stepi).
 
