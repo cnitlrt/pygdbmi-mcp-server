@@ -50,6 +50,7 @@ Create or modify the `.env` file in the project root directory to configure the 
 PORT=1111
 HOST="0.0.0.0"
 # TRANSPORT can be "sse" (Server-Sent Events) or "stdio" (Standard Input/Output)
+# If unset, the server auto-selects stdio when stdin is non-interactive (e.g. Codex MCP).
 TRANSPORT="sse"
 ```
 
@@ -74,4 +75,27 @@ uv pip install -e .
 
 ```bash
 uv run pygdbmi-mcp-server
+```
+
+You can also force the transport via CLI flags:
+
+```bash
+uv run pygdbmi-mcp-server --transport streamable-http
+uv run pygdbmi-mcp-server --transport stdio
+```
+
+#### Remote access (SSE/HTTP)
+
+Expose the server over the network with SSE:
+
+```bash
+uv run pygdbmi-mcp-server --transport sse --host 0.0.0.0 --port 1111
+```
+
+By default, the SSE endpoint is `/sse` and the message endpoint is `/messages/`,
+so the remote URL is typically:
+
+```
+http://<server-ip>:1111/sse
+http://<server-ip>:1111/mcp
 ```

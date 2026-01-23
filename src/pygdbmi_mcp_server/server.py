@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import argparse
 import logging
 import os
+import sys
 from functools import wraps
 from typing import Any, Dict, Optional
 
@@ -42,7 +44,14 @@ def catch_errors(tuple_on_error: bool = False):
     return decorator
 
 
-mcp = FastMCP("GDB MCP Server", port=int(os.getenv("PORT", 1111)), host=os.getenv("HOST", "0.0.0.0"))
+DEFAULT_HOST = "0.0.0.0"
+DEFAULT_PORT = 1111
+
+mcp = FastMCP(
+    "GDB MCP Server",
+    port=int(os.getenv("PORT", str(DEFAULT_PORT))),
+    host=os.getenv("HOST", DEFAULT_HOST),
+)
 session_dict: Dict[ServerSession, PwndbgTools] = {}
 
 
@@ -291,8 +300,72 @@ async def interrupt(context: Context = None) -> Dict[str, Any]:
     return pwndbg_tools.interrupt()
 
 
+def _resolve_transport(cli_transport: str | None) -> str:
+    if cli_transport:
+        return cli_transport
+    env_transport = os.getenv("MCP_TRANSPORT") or os.getenv("TRANSPORT")
+    if env_transport:
+        return env_transport
+    # If running under a parent process (e.g., Codex MCP), default to stdio.
+    if not sys.stdin.isatty():
+        return "stdio"
+    return "sse"
+
+
 def main():
-    mcp.run(transport=os.getenv("TRANSPORT", "sse"))
+    parser = argparse.ArgumentParser(description="pygdbmi MCP server")
+    parser.add_argument(
+        "--transport",
+        choices=["sse", "stdio", "streamable-http"],
+        help="Transport to use for MCP (default: auto-detect)",
+    )
+    parser.add_argument("--stdio", action="store_true", help="Alias for --transport stdio")
+    parser.add_argument("--sse", action="store_true", help="Alias for --transport sse")
+    parser.add_argument(
+        "--mount-path",
+        default=os.getenv("MOUNT_PATH", None),
+        help="Mount path prefix for SSE (e.g. /mcp).",
+    )
+    parser.add_argument(
+        "--sse-path",
+        default=os.getenv("SSE_PATH", None),
+        help="SSE endpoint path (default: /sse).",
+    )
+    parser.add_argument(
+        "--message-path",
+        default=os.getenv("MESSAGE_PATH", None),
+        help="POST message endpoint path (default: /messages/).",
+    )
+    parser.add_argument(
+        "--streamable-http-path",
+        default=os.getenv("STREAMABLE_HTTP_PATH", None),
+        help="Streamable HTTP endpoint path (default: /mcp).",
+    )
+    parser.add_argument("--host", default=os.getenv("HOST", DEFAULT_HOST))
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", str(DEFAULT_PORT))))
+
+    args = parser.parse_args()
+    if args.stdio:
+        args.transport = "stdio"
+    if args.sse:
+        args.transport = "sse"
+
+    transport = _resolve_transport(args.transport)
+    # Keep host/port updated for HTTP transports when args override env defaults.
+    if transport in ("sse", "streamable-http"):
+        mcp.settings.host = args.host
+        mcp.settings.port = args.port
+        if args.sse_path:
+            mcp.settings.sse_path = args.sse_path
+        if args.message_path:
+            mcp.settings.message_path = args.message_path
+        if args.streamable_http_path:
+            mcp.settings.streamable_http_path = args.streamable_http_path
+
+    if transport == "sse":
+        mcp.run(transport=transport, mount_path=args.mount_path)
+    else:
+        mcp.run(transport=transport)
 
 
 if __name__ == "__main__":

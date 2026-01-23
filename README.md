@@ -50,6 +50,7 @@ cd pygdbmi-mcp-server
 PORT=1111
 HOST="0.0.0.0"
 # TRANSPORT 可选 "sse" (Server-Sent Events) 或 "stdio" (标准输入输出)
+# 若未设置，服务器会在非交互式 stdin（例如 Codex MCP）下自动选择 stdio
 TRANSPORT="sse"
 ```
 
@@ -74,4 +75,26 @@ uv pip install -e .
 
 ```bash
 uv run pygdbmi-mcp-server
+```
+
+也可以通过参数指定传输模式：
+
+```bash
+uv run pygdbmi-mcp-server --transport streamable-http
+uv run pygdbmi-mcp-server --transport stdio
+```
+
+#### 远程连接（SSE/HTTP）
+
+让服务器监听公网/局域网地址并使用 SSE：
+
+```bash
+uv run pygdbmi-mcp-server --transport sse --host 0.0.0.0 --port 1111
+```
+
+默认 SSE 端点为 `/sse`，消息端点为 `/messages/`，因此远程地址通常是：
+
+```
+http://<服务器IP>:1111/sse
+http://<server-ip>:1111/mcp
 ```
