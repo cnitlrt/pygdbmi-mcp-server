@@ -17,6 +17,11 @@ This server provides a set of MCP tools for interacting with GDB:
 - `finish`: Run until the current function returns.
 - `step_control`: Execute stepping commands (continue, next, step, nexti, stepi).
 
+### Remote Debugging
+- `target_remote`: Connect to a remote debugging target (e.g., gdbserver).
+- `disconnect`: Disconnect from the remote target.
+
+
 ### File & Session Management
 - `set_file`: Load a binary file for debugging.
 - `set_poc_file`: Set the PoC file (passed to the binary via `set args`).
@@ -99,3 +104,26 @@ so the remote URL is typically:
 http://<server-ip>:1111/sse
 http://<server-ip>:1111/mcp
 ```
+
+### 5. Remote Debugging Example
+
+Use `target_remote` to connect to gdbserver for remote debugging:
+
+```bash
+# Start gdbserver on remote machine or another terminal
+gdbserver localhost:1234 /path/to/binary
+
+# Debug via MCP tools:
+# 1. Use set_file to load symbol file (same as remote binary)
+# 2. Use target_remote to connect to gdbserver
+#    Example: target_remote("localhost:1234")
+# 3. Use set_breakpoint to set breakpoints
+# 4. Use step_control("continue") to continue execution
+# 5. Use disconnect to disconnect from remote target
+```
+
+Remote debugging is especially useful for:
+- Embedded system debugging
+- Kernel module debugging
+- Cross-platform debugging
+- Debugging programs inside Docker containers

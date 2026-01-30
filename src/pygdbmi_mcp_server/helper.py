@@ -25,6 +25,10 @@ class SessionState:
     binary_loaded: bool = False
     entry_point: Optional[str] = None
 
+    # Remote debugging
+    remote_target: Optional[str] = None
+    remote_connected: bool = False
+
     # Process state
     pid: Optional[int] = None
     state: str = "idle"  # idle, running, stopped, exited
@@ -62,6 +66,8 @@ class SessionState:
             "binary_path": self.binary_path,
             "binary_loaded": self.binary_loaded,
             "entry_point": self.entry_point,
+            "remote_target": self.remote_target,
+            "remote_connected": self.remote_connected,
             "pid": self.pid,
             "state": self.state,
             "command_count": len(self.command_history),
@@ -216,6 +222,15 @@ class GdbController:
         result["state"] = self._state
         return result
 
+    def target_remote(self, target: str) -> Dict[str, Any]:
+        """Connect to a remote GDB server using target remote command"""
+        result = self.execute_command(f"target remote {target}")
+        if result["success"]:
+            self._state = "stopped"
+        # Ensure returned state reflects any updates
+        result["state"] = self._state
+        return result
+
     def set_poc_file(self, poc_file_path: str) -> Dict[str, Any]:
         """Load a proof-of-concept (PoC) file for debugging using command"""
         result = self.execute_command(f"set args {poc_file_path}")
@@ -337,6 +352,20 @@ class PwndbgTools:
         self.session.update_state(result["state"])
         self.session.record_command(
             result.get("command", f"file {binary_path}"), result
+        )
+        return result
+
+    def target_remote(self, target: str) -> Dict[str, Any]:
+        """Connect to a remote GDB server; return raw responses"""
+        logger.info(f"Connect to remote target: {target}")
+        result = self.gdb.target_remote(target)
+        if result.get("success"):
+            self.session.remote_target = target
+            self.session.remote_connected = True
+            self.session.binary_loaded = True  # Mark as ready for debugging
+        self.session.update_state(result["state"])
+        self.session.record_command(
+            result.get("command", f"target remote {target}"), result
         )
         return result
 

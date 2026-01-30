@@ -17,6 +17,11 @@
 - `finish`: 运行直到当前函数返回。
 - `step_control`: 执行步进命令 (continue, next, step, nexti, stepi)。
 
+### 远程调试
+- `target_remote`: 连接到远程调试目标 (如 gdbserver)。
+- `disconnect`: 断开远程连接。
+
+
 ### 文件与会话管理
 - `set_file`: 加载用于调试的二进制文件。
 - `set_poc_file`: 设置 PoC 文件 (通过 `set args` 传递给二进制文件)。
@@ -98,3 +103,26 @@ uv run pygdbmi-mcp-server --transport sse --host 0.0.0.0 --port 1111
 http://<服务器IP>:1111/sse
 http://<server-ip>:1111/mcp
 ```
+
+### 5. 远程调试示例
+
+使用 `target_remote` 连接到 gdbserver 进行远程调试：
+
+```bash
+# 在远程机器或另一个终端启动 gdbserver
+gdbserver localhost:1234 /path/to/binary
+
+# 通过 MCP 工具进行调试：
+# 1. 使用 set_file 加载符号文件（与远程二进制相同）
+# 2. 使用 target_remote 连接到 gdbserver
+#    示例: target_remote("localhost:1234")
+# 3. 使用 set_breakpoint 设置断点
+# 4. 使用 step_control("continue") 继续执行
+# 5. 使用 disconnect 断开连接
+```
+
+远程调试特别适用于：
+- 嵌入式系统调试
+- 内核模块调试
+- 跨平台调试
+- Docker 容器内程序调试

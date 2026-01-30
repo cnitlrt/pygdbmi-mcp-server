@@ -51,13 +51,14 @@ mcp = FastMCP(
     "GDB MCP Server",
     port=int(os.getenv("PORT", str(DEFAULT_PORT))),
     host=os.getenv("HOST", DEFAULT_HOST),
+    stateless_http=False,
 )
 session_dict: Dict[ServerSession, PwndbgTools] = {}
 
 
 async def get_unit_session(session: ServerSession):
     if session not in session_dict:
-        logger.info("{} not in session_dict, Please set_file first.", session)
+        logger.info(f"{session} not in session_dict, Please call set_file or target_remote first to initialize a debugging session.")
         return None
     return session_dict[session]
 
@@ -73,9 +74,8 @@ async def execute(command: str, context: Context) -> Dict[str, Any]:
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.execute(command)
-
 
 @mcp.tool()
 @catch_errors()
@@ -95,6 +95,23 @@ async def set_file(binary_path: str, context: Context) -> Dict[str, Any]:
 
 @mcp.tool()
 @catch_errors()
+async def target_remote(target: str, context: Context) -> Dict[str, Any]:
+    """
+    Connect to a remote GDB server for debugging.
+
+    :param target: Remote target address (format: host:port or /path/to/socket)
+    :returns: Connection status and information
+    """
+    if context.session not in session_dict:
+        logger.info("create new session...")
+        session_dict[context.session] = PwndbgTools()
+    pwndbg_tools = session_dict[context.session]
+    return pwndbg_tools.target_remote(target)
+
+
+
+@mcp.tool()
+@catch_errors()
 async def set_poc_file(poc_file_path: str, context: Context) -> Dict[str, Any]:
     """
     Use `set args poc_file` to set the proof-of-concept (PoC) file for the loaded binary.
@@ -104,7 +121,7 @@ async def set_poc_file(poc_file_path: str, context: Context) -> Dict[str, Any]:
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.set_poc_file(poc_file_path)
 
 
@@ -124,7 +141,7 @@ async def run(
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.run(args, start)
 
 
@@ -139,7 +156,7 @@ async def step_control(command: str, context: Context) -> Dict[str, Any]:
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.step_control(command)
 
 
@@ -153,7 +170,7 @@ async def finish(context: Context) -> Dict[str, Any]:
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.finish()
 
 
@@ -170,7 +187,7 @@ async def get_context(
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.get_context(context_type)
 
 
@@ -188,7 +205,7 @@ async def set_breakpoint(
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.set_breakpoint(location, condition)
 
 
@@ -202,7 +219,7 @@ async def list_breakpoints(context: Context = None) -> Dict[str, Any]:
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.list_breakpoints()
 
 
@@ -217,7 +234,7 @@ async def delete_breakpoint(number: int, context: Context = None) -> Dict[str, A
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.delete_breakpoint(number)
 
 
@@ -235,7 +252,7 @@ async def toggle_breakpoint(
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.toggle_breakpoint(number, enable)
 
 
@@ -254,7 +271,7 @@ async def get_memory(
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.get_memory(address, size, format)
 
 
@@ -269,7 +286,7 @@ async def disassemble(address: str, context: Context = None) -> Dict[str, Any]:
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.disassemble(address)
 
 
@@ -283,8 +300,9 @@ async def get_session_info(context: Context = None) -> Dict[str, Any]:
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.get_session_info()
+
 
 @mcp.tool()
 @catch_errors()
@@ -296,7 +314,7 @@ async def interrupt(context: Context = None) -> Dict[str, Any]:
     """
     pwndbg_tools = await get_unit_session(context.session)
     if pwndbg_tools is None:
-        return {"success": False, "error": "Please set_file first."}
+        return {"success": False, "error": "Please call set_file or target_remote first to initialize a debugging session."}
     return pwndbg_tools.interrupt()
 
 
@@ -319,7 +337,9 @@ def main():
         choices=["sse", "stdio", "streamable-http"],
         help="Transport to use for MCP (default: auto-detect)",
     )
-    parser.add_argument("--stdio", action="store_true", help="Alias for --transport stdio")
+    parser.add_argument(
+        "--stdio", action="store_true", help="Alias for --transport stdio"
+    )
     parser.add_argument("--sse", action="store_true", help="Alias for --transport sse")
     parser.add_argument(
         "--mount-path",
@@ -342,7 +362,9 @@ def main():
         help="Streamable HTTP endpoint path (default: /mcp).",
     )
     parser.add_argument("--host", default=os.getenv("HOST", DEFAULT_HOST))
-    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", str(DEFAULT_PORT))))
+    parser.add_argument(
+        "--port", type=int, default=int(os.getenv("PORT", str(DEFAULT_PORT)))
+    )
 
     args = parser.parse_args()
     if args.stdio:
@@ -364,6 +386,30 @@ def main():
 
     if transport == "sse":
         mcp.run(transport=transport, mount_path=args.mount_path)
+    elif transport == "streamable-http":
+        import uvicorn
+        from starlette.middleware import Middleware
+        from starlette.middleware.cors import CORSMiddleware
+
+        # Get the underlying app
+        app = mcp.streamable_http_app()
+        
+        # Add CORS middleware
+        # Note: We have to wrap the app because FastMCP doesn't directly expose middleware args yet
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_methods=["*"],
+            allow_headers=["*"],
+            expose_headers=["*"],
+        )
+
+        uvicorn.run(
+            app,
+            host=mcp.settings.host,
+            port=mcp.settings.port,
+            log_level=mcp.settings.log_level.lower(),
+        )
     else:
         mcp.run(transport=transport)
 
