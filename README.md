@@ -21,7 +21,6 @@
 - `target_remote`: 连接到远程调试目标 (如 gdbserver)。
 - `disconnect`: 断开远程连接。
 
-
 ### 文件与会话管理
 - `set_file`: 加载用于调试的二进制文件。
 - `set_poc_file`: 设置 PoC 文件 (通过 `set args` 传递给二进制文件)。
@@ -54,9 +53,9 @@ cd pygdbmi-mcp-server
 ```bash
 PORT=1111
 HOST="0.0.0.0"
-# TRANSPORT 可选 "sse" (Server-Sent Events) 或 "stdio" (标准输入输出)
+# TRANSPORT 可选 "streamable-http" (SSE/HTTP) 或 "stdio" (标准输入输出)
 # 若未设置，服务器会在非交互式 stdin（例如 Codex MCP）下自动选择 stdio
-TRANSPORT="sse"
+TRANSPORT="streamable-http"
 ```
 
 ### 3. 安装依赖
@@ -91,17 +90,47 @@ uv run pygdbmi-mcp-server --transport stdio
 
 #### 远程连接（SSE/HTTP）
 
-让服务器监听公网/局域网地址并使用 SSE：
+让服务器监听公网/局域网地址并使用 streamable-http:
 
 ```bash
-uv run pygdbmi-mcp-server --transport sse --host 0.0.0.0 --port 1111
+uv run pygdbmi-mcp-server --transport streamable-http --host 0.0.0.0 --port 1111
 ```
 
-默认 SSE 端点为 `/sse`，消息端点为 `/messages/`，因此远程地址通常是：
+默认 SSE 端点为 `/mcp`，因此远程地址通常是：
 
 ```
-http://<服务器IP>:1111/sse
 http://<server-ip>:1111/mcp
+```
+
+### 配置
+
+#### codex
+```json
+[mcp_servers.gdb]
+url = "http://127.0.0.1:1111/mcp"
+```
+#### antigravity
+```json
+{
+    "mcpServers": {
+        "gdb": {
+            "serverUrl": "http://127.0.0.1:1111/mcp/",
+            "disabled": false
+        }
+    }
+}
+```
+#### mcp-server
+```json
+{
+	"servers": {
+		"gdb-mcp-server": {
+			"url": "http://127.0.0.1:1111/mcp",
+			"type": "streamable-http"
+		}
+	},
+	"inputs": []
+}
 ```
 
 ### 5. 远程调试示例

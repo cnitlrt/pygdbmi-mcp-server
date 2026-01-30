@@ -21,7 +21,6 @@ This server provides a set of MCP tools for interacting with GDB:
 - `target_remote`: Connect to a remote debugging target (e.g., gdbserver).
 - `disconnect`: Disconnect from the remote target.
 
-
 ### File & Session Management
 - `set_file`: Load a binary file for debugging.
 - `set_poc_file`: Set the PoC file (passed to the binary via `set args`).
@@ -54,9 +53,9 @@ Create or modify the `.env` file in the project root directory to configure the 
 ```bash
 PORT=1111
 HOST="0.0.0.0"
-# TRANSPORT can be "sse" (Server-Sent Events) or "stdio" (Standard Input/Output)
+# TRANSPORT can be "streamable-http" (SSE/HTTP) or "stdio" (Standard Input/Output)
 # If unset, the server auto-selects stdio when stdin is non-interactive (e.g. Codex MCP).
-TRANSPORT="sse"
+TRANSPORT="streamable-http"
 ```
 
 ### 3. Install Dependencies
@@ -91,18 +90,49 @@ uv run pygdbmi-mcp-server --transport stdio
 
 #### Remote access (SSE/HTTP)
 
-Expose the server over the network with SSE:
+Expose the server over the network with streamable-http:
 
 ```bash
-uv run pygdbmi-mcp-server --transport sse --host 0.0.0.0 --port 1111
+uv run pygdbmi-mcp-server --transport streamable-http --host 0.0.0.0 --port 1111
 ```
 
-By default, the SSE endpoint is `/sse` and the message endpoint is `/messages/`,
-so the remote URL is typically:
+By default, the SSE endpoint is `/mcp`, so the remote URL is typically:
 
 ```
-http://<server-ip>:1111/sse
 http://<server-ip>:1111/mcp
+```
+
+### Configuration
+
+#### codex
+```json
+[mcp_servers.gdb]
+url = "http://127.0.0.1:1111/mcp"
+```
+
+#### antigravity
+```json
+{
+    "mcpServers": {
+        "gdb": {
+            "serverUrl": "http://127.0.0.1:1111/mcp/",
+            "disabled": false
+        }
+    }
+}
+```
+
+#### mcp-server
+```json
+{
+	"servers": {
+		"gdb-mcp-server": {
+			"url": "http://127.0.0.1:1111/mcp",
+			"type": "streamable-http"
+		}
+	},
+	"inputs": []
+}
 ```
 
 ### 5. Remote Debugging Example
