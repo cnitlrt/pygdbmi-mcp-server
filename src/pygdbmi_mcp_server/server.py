@@ -393,7 +393,7 @@ def main():
 
         # Get the underlying app
         app = mcp.streamable_http_app()
-        
+
         # Add CORS middleware
         # Note: We have to wrap the app because FastMCP doesn't directly expose middleware args yet
         app.add_middleware(
