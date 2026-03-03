@@ -10,32 +10,25 @@ Part of the code is referenced from [pwnomcp](https://github.com/pwno-io/pwno-mc
 
 This server provides a set of MCP tools for interacting with GDB:
 
-### Debug Control
-- `execute`: Execute arbitrary GDB/pwndbg command.
-- `run`: Run the loaded binary.
-- `interrupt`: Interrupt the running inferior.
-- `finish`: Run until the current function returns.
-- `step_control`: Execute stepping commands (continue, next, step, nexti, stepi).
-
-### Remote Debugging
-- `target_remote`: Connect to a remote debugging target (e.g., gdbserver).
-- `disconnect`: Disconnect from the remote target.
-
-### File & Session Management
-- `set_file`: Load a binary file for debugging.
-- `set_poc_file`: Set the PoC file (passed to the binary via `set args`).
-- `get_session_info`: Get current debugging session information.
-
-### Breakpoint Management
-- `set_breakpoint`: Set a breakpoint at the specified location.
-- `list_breakpoints`: List all breakpoints.
-- `delete_breakpoint`: Delete a breakpoint by number.
-- `toggle_breakpoint`: Toggle a breakpoint's enabled/disabled state.
-
-### State Inspection
-- `get_context`: Get debugging context (registers, stack, disassembly, code, backtrace).
-- `get_memory`: Read memory at the specified address.
-- `disassemble`: Disassemble the specified address.
+| Category | Tool | Description |
+| --- | --- | --- |
+| Debug Control | `execute` | Execute arbitrary GDB/pwndbg command. |
+| Debug Control | `run` | Run the loaded binary. |
+| Debug Control | `interrupt` | Interrupt the running inferior. |
+| Debug Control | `finish` | Run until the current function returns. |
+| Debug Control | `step_control` | Execute stepping commands (continue, next, step, nexti, stepi). |
+| Remote Debugging | `target_remote` | Connect to a remote debugging target (e.g., gdbserver). |
+| Remote Debugging | `disconnect` | Disconnect from the remote target. |
+| File & Session Management | `set_file` | Load a binary file for debugging. |
+| File & Session Management | `set_poc_file` | Set the PoC file (passed to the binary via `set args`). |
+| File & Session Management | `get_session_info` | Get current debugging session information. |
+| Breakpoint Management | `set_breakpoint` | Set a breakpoint at the specified location. |
+| Breakpoint Management | `list_breakpoints` | List all breakpoints. |
+| Breakpoint Management | `delete_breakpoint` | Delete a breakpoint by number. |
+| Breakpoint Management | `toggle_breakpoint` | Toggle a breakpoint's enabled/disabled state. |
+| State Inspection | `get_context` | Get debugging context (registers, stack, disassembly, code, backtrace). |
+| State Inspection | `get_memory` | Read memory at the specified address. |
+| State Inspection | `disassemble` | Disassemble the specified address. |
 
 ## Installation & Usage
 

@@ -10,32 +10,25 @@
 
 本服务器提供了一系列 MCP 工具，用于与 GDB 进行交互：
 
-### 调试控制
-- `execute`: 执行任意 GDB/pwndbg 命令。
-- `run`: 运行加载的二进制文件。
-- `interrupt`: 中断正在运行的程序。
-- `finish`: 运行直到当前函数返回。
-- `step_control`: 执行步进命令 (continue, next, step, nexti, stepi)。
-
-### 远程调试
-- `target_remote`: 连接到远程调试目标 (如 gdbserver)。
-- `disconnect`: 断开远程连接。
-
-### 文件与会话管理
-- `set_file`: 加载用于调试的二进制文件。
-- `set_poc_file`: 设置 PoC 文件 (通过 `set args` 传递给二进制文件)。
-- `get_session_info`: 获取当前调试会话信息。
-
-### 断点管理
-- `set_breakpoint`: 在指定位置设置断点。
-- `list_breakpoints`: 列出所有断点。
-- `delete_breakpoint`: 按编号删除断点。
-- `toggle_breakpoint`: 切换断点的启用/禁用状态。
-
-### 状态检查
-- `get_context`: 获取调试上下文 (寄存器, 堆栈, 反汇编, 代码, 回溯)。
-- `get_memory`: 读取指定地址的内存。
-- `disassemble`: 反汇编指定地址。
+| 分类 | 工具 | 说明 |
+| --- | --- | --- |
+| 调试控制 | `execute` | 执行任意 GDB/pwndbg 命令。 |
+| 调试控制 | `run` | 运行加载的二进制文件。 |
+| 调试控制 | `interrupt` | 中断正在运行的程序。 |
+| 调试控制 | `finish` | 运行直到当前函数返回。 |
+| 调试控制 | `step_control` | 执行步进命令 (continue, next, step, nexti, stepi)。 |
+| 远程调试 | `target_remote` | 连接到远程调试目标 (如 gdbserver)。 |
+| 远程调试 | `disconnect` | 断开远程连接。 |
+| 文件与会话管理 | `set_file` | 加载用于调试的二进制文件。 |
+| 文件与会话管理 | `set_poc_file` | 设置 PoC 文件 (通过 `set args` 传递给二进制文件)。 |
+| 文件与会话管理 | `get_session_info` | 获取当前调试会话信息。 |
+| 断点管理 | `set_breakpoint` | 在指定位置设置断点。 |
+| 断点管理 | `list_breakpoints` | 列出所有断点。 |
+| 断点管理 | `delete_breakpoint` | 按编号删除断点。 |
+| 断点管理 | `toggle_breakpoint` | 切换断点的启用/禁用状态。 |
+| 状态检查 | `get_context` | 获取调试上下文 (寄存器, 堆栈, 反汇编, 代码, 回溯)。 |
+| 状态检查 | `get_memory` | 读取指定地址的内存。 |
+| 状态检查 | `disassemble` | 反汇编指定地址。 |
 
 ## 安装与使用
 
