@@ -58,6 +58,14 @@ HOST="0.0.0.0"
 TRANSPORT="streamable-http"
 ```
 
+Optional debugger executable:
+
+```bash
+# Path or command name of debugger executable.
+# Windows usually uses gdb.exe, Linux/macOS can use pwndbg or gdb.
+GDB_PATH="gdb"
+```
+
 ### 3. Install Dependencies
 
 This project recommends using `uv` for dependency management and environment configuration.
@@ -87,6 +95,12 @@ You can also force the transport via CLI flags:
 uv run pygdbmi-mcp-server --transport streamable-http
 uv run pygdbmi-mcp-server --transport stdio
 ```
+
+#### Windows Notes
+
+- On Windows, the server defaults to `gdb` (not `pwndbg`).
+- If `pwndbg`-specific commands are unavailable, `get_context` falls back to standard GDB commands.
+- `get_memory` now uses standard GDB `x/...` output, so it works without `pwndbg`.
 
 #### Remote access (SSE/HTTP)
 

@@ -6,7 +6,8 @@ Each tool returns immediate results suitable for LLM interaction.
 """
 
 import logging
-import signal
+import os
+import platform
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -14,6 +15,21 @@ from typing import Any, Dict, List, Optional
 from pygdbmi import gdbcontroller
 
 logger = logging.getLogger(__name__)
+
+
+def _quote_gdb_arg(value: str) -> str:
+    """Quote command argument for gdb CLI command parsing."""
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _normalize_debug_path(path: str) -> str:
+    """Normalize paths so Windows drive paths are safe to pass to gdb."""
+    normalized = os.path.normpath(path)
+    if platform.system().lower().startswith("win"):
+        # gdb handles forward slashes consistently on Windows.
+        normalized = normalized.replace("\\", "/")
+    return normalized
 
 
 @dataclass
@@ -78,20 +94,31 @@ class SessionState:
 class GdbController:
     """Manages GDB instance and command execution via Machine Interface"""
 
-    def __init__(self, pwndbg: str = "pwndbg"):
+    def __init__(self, gdb_binary: Optional[str] = None):
         """
         Initialize GDB controller
 
         Args:
-            gdb_path: Path to GDB executable (default: "pwndbg")
+            gdb_binary: Path/name of debugger executable. If omitted, defaults to:
+                - Windows: gdb
+                - non-Windows: pwndbg
+                Can also be provided via GDB_PATH env var.
         """
+        is_windows = platform.system().lower().startswith("win")
+        if gdb_binary is None:
+            gdb_binary = os.getenv("GDB_PATH", "gdb" if is_windows else "pwndbg")
+
         self.controller = gdbcontroller.GdbController(
             command=[
-                pwndbg,
+                gdb_binary,
                 "--interpreter=mi3",
                 "--quiet",
                 "--nh",
             ]
+        )
+        binary_name = os.path.basename(gdb_binary).lower()
+        self._supports_pwndbg_commands = (
+            not is_windows and ("pwndbg" in binary_name or gdb_binary == "pwndbg")
         )
         self._initialized = False
         self._inferior_pid = None
@@ -117,13 +144,14 @@ class GdbController:
         try:
             responses = self.controller.write(command, timeout_sec=timeout_sec)
         except Exception as e:
-            self._state = "stopped"
-            self.controller.gdb_process.send_signal(signal.SIGINT)
+            logger.exception("GDB command failed: %s", command)
             return {
                 "command": command,
                 "responses": collected,
                 "success": False,
                 "state": self._state,
+                "error": str(e),
+                "type": type(e).__name__,
             }
 
         for response in responses:
@@ -150,27 +178,10 @@ class GdbController:
     def interrupt(self) -> Dict[str, Any]:
         """Interrupt the running inferior; return raw responses"""
         logger.info("Interrupt execution")
-        collected: list[dict] = []
-        self.controller.gdb_process.send_signal(signal.SIGINT)
-        responses = self.controller.get_gdb_response(timeout_sec=1.0)
-        for res in responses:
-            if res.get("type") != "notify":
-                collected.append(res)
-            if res.get("type") == "notify":
-                self._handle_notify(res)
-        # Determine success: no explicit error result messages
-        success = True
-        for r in collected:
-            if r.get("type") == "result" and r.get("message") == "error":
-                success = False
-                break
-
-        return {
-            "command": "interrupt",
-            "responses": collected,
-            "success": success,
-            "state": self._state,
-        }
+        # Prefer MI interrupt for better cross-platform behavior.
+        result = self.execute_command("-exec-interrupt", timeout_sec=2.0)
+        result["command"] = "interrupt"
+        return result
 
     def _handle_notify(self, response: Dict[str, Any]):
         """Handle GDB notification messages to track state"""
@@ -211,11 +222,23 @@ class GdbController:
                 "state": self._state,
                 "error": f"Cannot get context while inferior is {self._state}",
             }
-        return self.execute_command(f"context {context_type}")
+        if self._supports_pwndbg_commands:
+            return self.execute_command(f"context {context_type}")
+
+        fallback_command_map = {
+            "regs": "info registers",
+            "stack": "x/32gx $sp",
+            "disasm": "x/16i $pc",
+            "code": "list *$pc",
+            "backtrace": "bt",
+        }
+        cmd = fallback_command_map.get(context_type, "bt")
+        return self.execute_command(cmd)
 
     def set_file(self, filepath: str) -> Dict[str, Any]:
         """Load an executable file for debugging using command"""
-        result = self.execute_command(f"file {filepath}")
+        safe_path = _quote_gdb_arg(_normalize_debug_path(filepath))
+        result = self.execute_command(f"file {safe_path}")
         if result["success"]:
             self._state = "stopped"
         # Ensure returned state reflects any updates
@@ -233,7 +256,8 @@ class GdbController:
 
     def set_poc_file(self, poc_file_path: str) -> Dict[str, Any]:
         """Load a proof-of-concept (PoC) file for debugging using command"""
-        result = self.execute_command(f"set args {poc_file_path}")
+        safe_path = _quote_gdb_arg(_normalize_debug_path(poc_file_path))
+        result = self.execute_command(f"set args {safe_path}")
         if result["success"]:
             self._state = "stopped"
         # Ensure returned state reflects any updates
@@ -243,8 +267,7 @@ class GdbController:
     def run(self, args: str = "", start: bool = False) -> Dict[str, Any]:
         """Run the loaded program using command"""
         if args:
-            set_args_result = self.execute_command(f"b {args}")
-            set_args_result = self.execute_command(f"continue")
+            set_args_result = self.execute_command(f"set args {args}")
             if not set_args_result["success"]:
                 return set_args_result
 
@@ -522,7 +545,7 @@ class PwndbgTools:
         """Read memory at specified address; return raw responses"""
         logger.info(f"Read memory at {address}, {size} bytes as {format}")
         if format == "hex":
-            cmd = f"hexdump {address} {size}"
+            cmd = f"x/{size}xb {address}"
         elif format == "string":
             cmd = f"x/s {address}"
         else:

@@ -58,6 +58,14 @@ HOST="0.0.0.0"
 TRANSPORT="streamable-http"
 ```
 
+可选调试器配置：
+
+```bash
+# 调试器可执行文件路径或命令名
+# Windows 一般使用 gdb.exe，Linux/macOS 可使用 pwndbg 或 gdb
+GDB_PATH="gdb"
+```
+
 ### 3. 安装依赖
 
 本项目推荐使用 `uv` 进行依赖管理和环境配置。
@@ -87,6 +95,12 @@ uv run pygdbmi-mcp-server
 uv run pygdbmi-mcp-server --transport streamable-http
 uv run pygdbmi-mcp-server --transport stdio
 ```
+
+#### Windows 说明
+
+- 在 Windows 上，服务默认使用 `gdb`（不再默认依赖 `pwndbg`）。
+- 若 `pwndbg` 专有命令不可用，`get_context` 会自动降级为标准 GDB 命令。
+- `get_memory` 已改为标准 GDB `x/...` 输出，无需 `pwndbg` 也可使用。
 
 #### 远程连接（SSE/HTTP）
 
